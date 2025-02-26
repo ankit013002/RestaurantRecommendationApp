@@ -2,36 +2,49 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import os
-from dotenv import load_dotenv
 import time
 import logging
+import redis
+from dotenv import load_dotenv
+import json
 
-# Load environment variables
 load_dotenv()
 
 logging.basicConfig(level=logging.INFO)
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend communication
+CORS(app) 
+
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+REDIS_DB = 0
+CACHE_EXPIRY = 300  
+
+redis_client = redis.Redis(host=REDIS_HOST, port=REDIS_PORT, db=REDIS_DB, decode_responses=True)
 
 GOOGLE_PLACES_API_URL = "https://maps.googleapis.com/maps/api/place/textsearch/json"
 GOOGLE_API_KEY = os.getenv("GOOGLE_PLACES_API_KEY")
 
-# Sample route
 @app.route("/")
 def home():
     return jsonify({"message": "Welcome to the Restaurant Recommendation API!"})
 
-# Endpoint to search for restaurants
 @app.route("/search", methods=["GET"])
 def search_restaurants():
-    query = request.args.get("query")  # Dish or cuisine
-    location = request.args.get("location")  # User's location
-    sort_by = request.args.get("sort_by", "quality")  # Default sort by quality
-    page_token = request.args.get("page_token")  # Optional page token for pagination
+    query = request.args.get("query")
+    location = request.args.get("location")
+    sort_by = request.args.get("sort_by", "quality")
+    page_token = request.args.get("page_token")
 
     if not query or not location:
         return jsonify({"error": "Query and location are required"}), 400
+
+    cache_key = f"{query}_{location}_{sort_by}_{page_token}"
+    
+    cached_data = redis_client.get(cache_key)
+    if cached_data:
+        logging.info("Cache hit - Returning cached data")
+        return jsonify(json.loads(cached_data))
 
     params = {
         "query": f"{query} restaurants in {location}",
@@ -39,8 +52,8 @@ def search_restaurants():
     }
     
     if page_token:
-        params["pagetoken"] = page_token  # Add page token if provided
-    
+        params["pagetoken"] = page_token
+
     for _ in range(3):
         response = requests.get(GOOGLE_PLACES_API_URL, params=params)
         data = response.json()
@@ -72,11 +85,18 @@ def search_restaurants():
     elif sort_by == "value":
         formatted_restaurants.sort(key=lambda x: (x["price_level"] if isinstance(x["price_level"], int) else float("inf")))
 
-    return jsonify({
+    response_data = {
         "restaurants": formatted_restaurants,
-        "next_page_token": data.get("next_page_token")  # Return next_page_token for pagination
-    })
+        "next_page_token": data.get("next_page_token")
+    }
 
-# Run the Flask app
+    try:
+        redis_client.setex(cache_key, CACHE_EXPIRY, json.dumps(response_data))
+    except redis.exceptions.ConnectionError:
+        logging.error("Redis is unavailable, continuing without caching.")
+
+
+    return jsonify(response_data)
+
 if __name__ == "__main__":
     app.run(debug=True)
