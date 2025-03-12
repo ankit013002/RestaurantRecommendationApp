@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import "./Results.css";
+import "../css/Results.css";
 
 const Results = () => {
   const location = useLocation();

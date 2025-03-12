@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import "./RestaurantSearch.css";
+import "../css/RestaurantSearch.css";
 
 function RestaurantSearch() {
     const [query, setQuery] = useState("");

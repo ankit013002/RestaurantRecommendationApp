@@ -1,6 +1,5 @@
 import React from 'react'
-import './Header.css'
-import RestaurantSearch from "./RestaurantSearch";
+import '../css/Header.css'
 
 const Header = () => {
   return (
@@ -9,9 +8,6 @@ const Header = () => {
         <div className='header-overlay'>
             <h1 className='header-title'>Discover Your Next Meal</h1>
             <p className='header-subtitle'>Find the best restaurants around you</p>
-        </div>
-        <div className='search-container'>
-            <RestaurantSearch/>
         </div>
     </div>
   )
