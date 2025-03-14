@@ -26,7 +26,7 @@ function RestaurantSearch() {
     };
 
     return (
-        <div className="restaurant-search-container">
+        <div>
             <div className="search-box">
                 <input
                     type="text"

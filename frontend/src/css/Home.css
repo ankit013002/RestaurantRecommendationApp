@@ -1,7 +1,8 @@
-.hhome-container {
+.home-container {
     display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100px;
+    height: 100vh;
+    background-image: url('/Homepage.png');
+    background-size: cover;
+    background-position: center;
 }
